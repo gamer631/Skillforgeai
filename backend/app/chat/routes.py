@@ -89,6 +89,10 @@ def send_message(conversation_id: int):
     if not conversation:
         return jsonify({"error": "Conversation not found."}), 404
 
+    # Capture scalar identifiers before the streaming response outlives this request.
+    owner_id = int(user.id)
+    conversation_key = int(conversation.id)
+
     data = request.get_json(silent=True) or {}
     content = str(data.get("content", "")).strip()
     max_chars = current_app.config["MAX_USER_MESSAGE_CHARS"]
@@ -137,7 +141,7 @@ def send_message(conversation_id: int):
             if not full_answer:
                 full_answer = "I couldn't generate a response. Please try again."
             assistant_message = Message(
-                conversation_id=conversation.id,
+                conversation_id=conversation_key,
                 role="assistant",
                 content=full_answer,
                 model=provider.model,
@@ -146,8 +150,8 @@ def send_message(conversation_id: int):
             conversation.updated_at = datetime.now(timezone.utc)
             db.session.add(assistant_message)
             db.session.add(UsageEvent(
-                user_id=user.id,
-                conversation_id=conversation.id,
+                user_id=owner_id,
+                conversation_id=conversation_key,
                 model=provider.model,
                 input_characters=sum(len(item.get("content", "")) for item in provider_messages),
                 output_characters=len(full_answer),
@@ -155,11 +159,11 @@ def send_message(conversation_id: int):
                 status="completed",
             ))
             db.session.commit()
-            yield f"data: {json.dumps({'type': 'done', 'conversation_id': conversation.id})}\n\n"
+            yield f"data: {json.dumps({'type': 'done', 'conversation_id': conversation_key})}\n\n"
         except ProviderError as exc:
             db.session.rollback()
             db.session.add(UsageEvent(
-                user_id=user.id, conversation_id=conversation.id, model=provider.model,
+                user_id=owner_id, conversation_id=conversation_key, model=provider.model,
                 input_characters=sum(len(item.get("content", "")) for item in provider_messages),
                 output_characters=sum(len(part) for part in output_parts),
                 latency_ms=int((time.perf_counter() - started_at) * 1000), status="failed",
