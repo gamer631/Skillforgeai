@@ -6,9 +6,10 @@ from flask_cors import CORS
 from .config import Config
 from .extensions import csrf, db, limiter
 from .services.llm_provider import AnthropicMessagesProvider, OpenAICompatibleProvider
+from .services.web_search import TavilySearchProvider
 
 
-def create_app(config_object=Config, provider=None):
+def create_app(config_object=Config, provider=None, search_provider=None):
     app = Flask(__name__)
     app.config.from_object(config_object)
 
@@ -45,11 +46,19 @@ def create_app(config_object=Config, provider=None):
             temperature=app.config["LLM_TEMPERATURE"],
         )
 
+    app.extensions["web_search_provider"] = search_provider or TavilySearchProvider(
+        api_key=app.config["TAVILY_API_KEY"],
+        timeout=app.config["WEB_SEARCH_TIMEOUT_SECONDS"],
+        max_results=app.config["WEB_SEARCH_MAX_RESULTS"],
+    )
+
     from .auth.routes import bp as auth_bp
     from .chat.routes import bp as chat_bp
+    from .documents.routes import bp as documents_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(chat_bp)
+    app.register_blueprint(documents_bp)
 
     @app.get("/api/health")
     def health():
@@ -57,6 +66,8 @@ def create_app(config_object=Config, provider=None):
             "status": "ok",
             "service": "skillforge-ai-api",
             "ai_configured": app.extensions["llm_provider"].is_configured,
+            "web_search_configured": app.extensions["web_search_provider"].is_configured,
+            "document_chat_enabled": True,
         })
 
     @app.get("/api/csrf")
@@ -67,6 +78,10 @@ def create_app(config_object=Config, provider=None):
     @app.errorhandler(400)
     def bad_request(error):
         return jsonify({"error": "Invalid request."}), 400
+
+    @app.errorhandler(413)
+    def request_too_large(error):
+        return jsonify({"error": "Upload or request exceeds the configured size limit."}), 413
 
     @app.errorhandler(429)
     def rate_limited(error):
