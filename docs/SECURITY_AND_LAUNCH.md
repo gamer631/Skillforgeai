@@ -1,33 +1,35 @@
 # Security, privacy, and launch checklist
 
-## Current implementation safeguards
+## Current safeguards
+- Password hashes and HTTP-only session cookies
+- CSRF protection and configured CORS allow-list
+- Per-user conversation and project ownership checks
+- Project file path validation, source/text extension allow-list, file-count and character limits
+- Project files stored as text and never executed by the application
+- Retrieved project and knowledge content is treated as untrusted prompt data
+- Model provider credentials remain server-side
+- Chat message and request limits
 
-- Password hashes, not plaintext passwords
-- Session cookies are HTTP-only
-- CSRF protection on mutating API calls
-- CORS allow-list from environment configuration
-- Per-user conversation ownership checks
-- Input length limits
-- Registration/login/chat rate limits
-- Model API keys remain server-side
-- Generic error messages for unexpected failures
+## Important current limitations
+- Project context ingestion is not a malware scanner or secret scanner.
+- Users must not upload credentials, API tokens, environment secrets, private keys, customer data, or confidential material.
+- The retrieval engine is lexical and may miss related information; it does not prove that all project files were reviewed.
+- Provider API calls may send prompts and retrieved project snippets to the configured third-party model service.
+- Basic usage tokens are character-based estimates, not billing data.
+- In-memory rate limits are not suitable for multi-instance production.
+- The repository still uses create_all for startup; use migrations for future production schema changes.
 
-## Required before any public launch
-
+## Required before public launch
 - Replace the development secret with a cryptographically random secret.
-- Set HTTPS and `SESSION_COOKIE_SECURE=true`; review SameSite and CORS for the final domain.
-- Move rate-limit storage from in-memory to Redis or another shared backend.
-- Use a managed relational database, migrations, encryption at rest, backups, and restore tests.
-- Add email verification, password reset, account deletion, and session revocation.
-- Add abuse detection, safety review, and a user report flow.
-- Implement per-plan token quotas, spend budgets, and provider usage accounting.
-- Review prompt-injection risks before enabling document retrieval or tools.
-- Add data-retention/deletion policy and disclose model-provider data handling.
-- Conduct dependency, application, and API security reviews.
-- Add monitoring, structured logs with PII minimisation, and incident response runbooks.
+- Use HTTPS and secure cookies; verify origins and SameSite settings.
+- Add Redis-backed limits, per-plan quotas, provider token accounting and spend limits.
+- Add email verification, password reset, account deletion, and data export.
+- Add project file secret detection/redaction, retention/deletion controls and user consent.
+- Add prompt-injection testing for project source files and retrieved content.
+- Add moderation, user reporting, and acceptable-use enforcement.
+- Use managed database migrations, encrypted backups, restore drills, and monitoring.
+- Publish clear privacy and provider-disclosure notices.
+- Conduct independent application/API security review.
 - Review Nepal legal, privacy, consumer, payment, and tax requirements with qualified local advisers.
-- Confirm all provider terms permit the intended product use and that user data handling is disclosed.
 
-## Important limitations
-
-This repository is a functional MVP foundation, not a production security certification. It does not yet include a mature moderation pipeline, file scanning, web search, payment processing, token accounting, plan enforcement, email verification, or account recovery. Do not accept customer payments or promise high availability until these controls are implemented and reviewed.
+This is an early-stage development product, not a security certification or production launch approval.

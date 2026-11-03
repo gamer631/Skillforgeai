@@ -13,8 +13,8 @@ class FakeProvider:
 
     def stream_chat(self, messages):
         self.last_messages = messages
-        yield "Hello "
-        yield "from SkillForge AI."
+        yield "I will help you work through this."
+        yield " Here is the next step."
 
 
 @pytest.fixture
@@ -38,7 +38,11 @@ def client(app):
 def authenticated_client(client):
     response = client.post(
         "/api/auth/register",
-        json={"email": "learner@example.com", "display_name": "Learner", "password": "a-very-secure-password"},
+        json={
+            "email": "learner@example.com",
+            "display_name": "Learner",
+            "password": "a-very-secure-password",
+        },
     )
     assert response.status_code == 201
     return client

@@ -1,197 +1,124 @@
 # SkillForge AI
 
 **Think. Create. Code. Understand.**  
-An affordable AI assistant built in Nepal, designed for Nepali and English users.
+A Nepal-built AI teacher and software development partner for Nepali and English users.
 
-This repository contains an early MVP foundation: a React chat interface, Flask API, account registration/login, user-owned conversation history, streaming AI responses through native Anthropic and OpenAI-compatible provider adapters, basic rate limits, usage-event records, and automated backend/frontend tests.
+SkillForge AI is not pretraining a general-purpose foundation model. It uses an interchangeable hosted or local model and adds specialised behaviour through curated technical knowledge, private project context, learner preferences, and Teach/Build/Review modes.
 
-> **Important product truth:** SkillForge AI is the assistant product and application layer. The first version uses an existing model through an API or a compatible local inference server. It does not claim to have trained a ChatGPT/Claude-scale foundation model. Training a competitive general-purpose model from scratch is not a realistic low-budget first step, especially without dedicated GPU infrastructure.
+## What it does
 
-## What's implemented
+- **Teach:** explain Python, AI/ML, deep learning, web/mobile development, databases, and software engineering step by step.
+- **Build:** plan features, propose implementation code, explain file changes, and suggest focused tests.
+- **Review:** inspect supplied code excerpts for correctness, security, performance, and maintainability.
+- **Shared expertise:** a curated, seeded knowledge library covering Python debugging, full-stack architecture, SQL, machine learning, deep learning, and secure-code review.
+- **Personal project context:** private projects with descriptions, goals, technology stacks, and selected code/text files.
+- **Retrieval:** CPU-only lexical retrieval sends the top relevant shared and project snippets with [K1] and [P1] source markers.
+- **Learner profile:** experience level, language preference, teaching style, and learning goals.
+- **Streaming chat:** existing Anthropic and OpenAI-compatible provider adapters remain configurable.
+- **User isolation:** all projects and conversations are checked against the authenticated owner.
 
-- Responsive dark chat interface with signup/sign-in
-- User-owned conversations, message history, and delete conversation
-- Streaming server-sent-event (SSE) responses
-- Nepali/English-aware system instructions
-- Provider adapters for the native Anthropic Messages API and OpenAI-compatible chat endpoints
-- Can point at OpenAI, Groq, a compatible router, local Ollama, or Anthropic Claude API
-- Server-side API key storage
-- Password hashing, HTTP-only session cookies, CSRF protection
-- Conversation ownership checks
-- Message-size, hourly rate, and daily beta limits
-- Basic usage and latency event records
-- SQLite development database and Docker setup
-- Pytest API tests and Vitest frontend utility tests
+## Project knowledge
 
-## Repository layout
+1. Create a project in the left sidebar.
+2. Add its name, description, goals, and stack.
+3. Select the project above the chat.
+4. Add selected UTF-8 source/config/documentation files in supported text formats.
+5. Ask SkillForge to teach, build, or review in the context of that project.
+6. The assistant receives only top-ranked relevant excerpts and cites them as [P1], [P2], etc. Shared guides use [K1], [K2].
 
-```text
-Skillforgeai/
-├── backend/
-│   ├── app/
-│   │   ├── auth/              # register, login, logout, current user
-│   │   ├── chat/              # conversations and streamed messages
-│   │   ├── services/          # model-provider adapter
-│   │   ├── config.py
-│   │   ├── extensions.py
-│   │   ├── models.py          # User, Conversation, Message, UsageEvent
-│   │   └── __init__.py
-│   ├── tests/
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   └── wsgi.py
-├── frontend/
-│   ├── src/App.jsx
-│   ├── src/api.js
-│   ├── src/styles.css
-│   ├── src/utils.js
-│   └── package.json
-├── docs/
-│   ├── PRODUCT_SPEC.md
-│   ├── ARCHITECTURE.md
-│   ├── MODEL_STRATEGY.md
-│   ├── NEPAL_PRICING.md
-│   └── SECURITY_AND_LAUNCH.md
-├── .env.example
-├── docker-compose.yml
-└── Makefile
-```
+Project files are stored as text and are never executed by this service. Do not upload secrets, API keys, environment credentials, private keys, customer data, or confidential files. The initial retrieval engine is lexical and may miss relevant files.
 
-## Requirements
+## Requirements and local setup
 
-- Python 3.11 or newer
-- Node.js 20 or newer
-- npm
-- An API key for a hosted model provider **or** a running compatible local model server
+- Python 3.11+, Node.js 20+, npm
+- Hosted model API key or compatible local inference service
 
-## Run locally — Windows PowerShell
+Windows PowerShell backend:
 
-### 1. Configure backend
-
-```powershell
+\`\`\`powershell
 cd backend
 py -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\\.venv\\Scripts\\Activate.ps1
 pip install -r requirements.txt
-Copy-Item ..\.env.example .env
-```
+Copy-Item ..\\.env.example .env
+\`\`\`
 
-Edit `backend/.env` and set:
+Set the model provider in the backend environment:
 
-```env
+\`\`\`env
 LLM_PROVIDER=openai-compatible
 LLM_BASE_URL=https://api.openai.com/v1
 LLM_API_KEY=your-provider-api-key
-LLM_MODEL=your-currently-available-chat-model
-```
+LLM_MODEL=your-currently-available-model
+\`\`\`
 
-For Claude API access, use the native Messages adapter:
+For Claude API access use the native Anthropic adapter:
 
-```env
+\`\`\`env
 LLM_PROVIDER=anthropic
 LLM_BASE_URL=https://api.anthropic.com/v1
 LLM_API_KEY=your-anthropic-api-key
 LLM_MODEL=your-currently-available-claude-model
 ANTHROPIC_VERSION=2026-10-21
-```
+\`\`\`
 
-Never commit `.env` or place an API key in frontend variables.
+Start the backend:
 
-### 2. Start the backend
-
-```powershell
+\`\`\`powershell
 flask --app wsgi.py run --debug --port 5000
-```
+\`\`\`
 
-Backend: `http://127.0.0.1:5000`  
-Health: `http://127.0.0.1:5000/api/health`
+Start the frontend in another terminal:
 
-### 3. Start the frontend
-
-In another terminal:
-
-```powershell
+\`\`\`powershell
 cd frontend
 npm install
 npm run dev
-```
+\`\`\`
 
-Open `http://127.0.0.1:5173`.
+Open http://127.0.0.1:5173.
 
-### macOS/Linux equivalent
+macOS/Linux: create a virtual environment in backend, install requirements, copy ../.env.example to .env, then run \`flask --app wsgi.py run --debug --port 5000\`. In another terminal run \`cd frontend && npm install && npm run dev\`.
 
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp ../.env.example .env
-# Edit .env with provider endpoint, key, and model.
-flask --app wsgi.py run --debug --port 5000
-```
+## Seed shared knowledge
 
-In another terminal, run `cd frontend && npm install && npm run dev`.
+Starter articles are inserted at app startup if their slugs do not exist. To seed explicitly from the backend directory:
 
-## Local model with Ollama
+\`\`\`bash
+python -m scripts.seed_knowledge
+\`\`\`
 
-Install Ollama and pull a model that fits your computer's RAM. Start the local service, then set the backend environment to:
+The seed routine does not overwrite existing articles; updates should use a deliberate content change or migration process.
 
-```env
-LLM_BASE_URL=http://127.0.0.1:11434/v1
-LLM_API_KEY=
-LLM_MODEL=your-local-model-name
-```
+## API additions
 
-The model name must match a model available in your Ollama installation. Local model speed and quality depend heavily on system RAM, CPU, model size, and quantisation. A small local model may be useful for development, but it will not automatically match frontier hosted assistants. If the API is running in Docker while Ollama runs on your host machine, use `http://host.docker.internal:11434/v1` (where supported) instead of `127.0.0.1`.
+- \`GET /api/knowledge\` — list published shared guides (requires login)
+- \`GET /api/projects\`, \`POST /api/projects\`
+- \`GET /api/projects/{id}\`, \`PATCH /api/projects/{id}\`, \`DELETE /api/projects/{id}\`
+- \`POST /api/projects/{id}/files\` — add/update one text/code file
+- \`DELETE /api/projects/{id}/files/{file_id}\`
+- \`GET /api/profile\`, \`PUT /api/profile\`
+- \`GET /api/usage\` — 30-day approximate usage
+- \`POST /api/conversations/{id}/messages\` accepts \`mode\` (\`teach\`, \`build\`, \`review\`) and optional \`project_id\`
 
-## Tests and production build
+## Tests
 
-Backend tests:
+\`\`\`bash
+cd backend && pytest
+\`\`\`
 
-```bash
-cd backend
-pytest
-```
+\`\`\`bash
+cd frontend && npm install && npm test && npm run build
+\`\`\`
 
-Frontend tests and production build:
+GitHub Actions runs backend tests and frontend tests/build on pushes and pull requests to main/develop.
 
-```bash
-cd frontend
-npm install
-npm test
-npm run build
-```
+## Model and safety limits
 
-## Docker
+The app does not train a ChatGPT/Claude-scale model. Shared knowledge plus retrieval improves task relevance; it does not guarantee factual accuracy. Project context is selected by lexical matching and only supplied snippets are seen by the model. Provider credentials stay on the server, but prompts and retrieved snippets are sent to the configured provider. Disclose this before public launch. This is a development milestone, not production certification.
 
-Copy `.env.example` to `.env` at repository root, configure `LLM_MODEL` and provider credentials, then run:
-
-```bash
-docker compose up --build
-```
-
-The API is exposed on port `5000`. The frontend is currently run separately with Vite; production should serve the built frontend and `/api` behind one HTTPS domain/reverse proxy.
-
-## Current API
-
-- `GET /api/health`
-- `GET /api/csrf`
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/auth/me`
-- `GET /api/conversations`
-- `POST /api/conversations`
-- `GET /api/conversations/<id>`
-- `DELETE /api/conversations/<id>`
-- `POST /api/conversations/<id>/messages` (SSE stream)
-
-## Known limitations — do not skip before launch
-
-This is an early MVP foundation, not a production-ready public AI service. It does not yet have email verification, password reset, account deletion, mature moderation, user feedback, file upload/RAG, web search, citations, voice/image support, tool execution, subscription billing, token-based accounting, model routing, or robust distributed rate limiting. The in-memory limiter is for development; use Redis in production. Add migrations before production database use. Review model-provider terms and privacy handling. Complete a security review and cost-budget tests before accepting payments or opening the service to the public.
-
-See `docs/SECURITY_AND_LAUNCH.md` for the release checklist.
+See docs/SPECIALIZED_ASSISTANT.md, docs/ARCHITECTURE.md, docs/SECURITY_AND_LAUNCH.md, and docs/ROADMAP.md.
 
 ## License
 
-MIT for this starter software. Product branding and any third-party model, dataset, media, or provider assets remain subject to their own terms.
+MIT for this starter software. Third-party models, providers, datasets, and assets remain subject to their own terms.

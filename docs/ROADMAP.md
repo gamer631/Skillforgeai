@@ -1,53 +1,50 @@
 # Product and engineering roadmap
 
-## Milestone 0 — Local MVP foundation (this repository)
+## Milestone 0 — Chat MVP
+- [x] React chat interface and authentication
+- [x] Flask session auth, CSRF and conversation ownership
+- [x] Anthropic and OpenAI-compatible model streaming adapters
+- [x] Conversation/message persistence and starter CI
 
-- [x] React chat interface and auth screen
-- [x] Flask session auth, CSRF, conversation ownership
-- [x] Streaming provider adapter
-- [x] Conversation/message persistence
-- [x] Starter usage event schema, hourly and daily beta limits
-- [x] Backend tests and frontend utility tests authored
-- [ ] Run dependency-backed test/build checks in an environment with package access
+## Milestone 1 — Specialised AI teacher and development partner (current)
+- [x] Three assistant modes: Teach, Build and Review
+- [x] Curated shared knowledge articles seeded into the database
+- [x] Learner profile: experience, language, teaching style and goals
+- [x] Private project workspaces with stack, description and goals
+- [x] Allow-listed text/code files stored without execution
+- [x] CPU-only retrieval across shared guides and selected project files
+- [x] Context source markers and persisted source labels
+- [x] Conversation workspace stores mode and optional selected project
+- [x] Ownership, validation, retrieval, and personalisation tests
 
-## Milestone 1 — Private alpha
+## Milestone 2 — Quality, trust and safety
+- [ ] Human-reviewed Nepali/English evaluation set across Python, AI/ML, web/mobile and SQL
+- [ ] Answer feedback, issue reporting and admin quality dashboard
+- [ ] Provider-reported token usage and accurate cost accounting
+- [ ] Per-plan usage quotas, spend caps and low-cost model routing
+- [ ] Redis-backed rate limits
+- [ ] Email verification, password recovery, account deletion and data export
+- [ ] Secret scanning/redaction guidance for project file ingestion
+- [ ] Database migrations and managed production database
 
-- [ ] Choose provider and model using a cost/quality benchmark
-- [ ] Deploy to a private staging URL with HTTPS
-- [ ] Add Redis-backed rate limits, request IDs, and structured observability
-- [ ] Add admin usage dashboard, provider cost accounting, and spend alerts
-- [ ] Add user feedback (thumbs up/down + reason)
-- [ ] Add Nepali/English evaluation suite and human review
-- [ ] Invite 20–50 testers and review weekly feedback
+## Milestone 3 — Better project intelligence
+- [ ] GitHub connection with explicit repository/branch permissions
+- [ ] File tree synchronisation and incremental re-indexing
+- [ ] Multilingual embeddings and vector retrieval with benchmarked quality
+- [ ] Structured code review reports and diff proposals
+- [ ] Safe code execution in isolated ephemeral containers
+- [ ] PDF/DOCX uploads and source extraction with malware scanning
 
-## Milestone 2 — Trust and paid beta
-
-- [ ] Email verification, password reset, account deletion
-- [ ] Mature moderation and abuse reporting
-- [ ] Token usage ingestion, per-plan quotas, and transparent usage meter
-- [ ] Model routing and safe fallback strategy
-- [ ] Privacy/retention policy and model-provider disclosure
-- [ ] Payment integration only after merchant and legal requirements are checked
-- [ ] Limited NPR-priced subscription pilot; no unlimited plans
-
-## Milestone 3 — Useful tools
-
-- [ ] File uploads with size/type validation and malware scanning
-- [ ] Document extraction and per-user RAG with source references
-- [ ] Web search provider with citations and freshness timestamps
-- [ ] Prompt-injection-resistant tool orchestration
-- [ ] Safe code execution in isolated ephemeral containers (never in the API process)
-
-## Milestone 4 — Multimodal and teams
-
-- [ ] Image understanding
-- [ ] Voice input/output
-- [ ] Team workspaces and shared billing
-- [ ] Mobile PWA improvements and optional native apps
+## Milestone 4 — More assistant capabilities
+- [ ] Optional web search with citations
+- [ ] Image/diagram understanding and voice input/output
+- [ ] Tool orchestration with approval gates
+- [ ] Team workspaces and collaboration
 
 ## Milestone 5 — Own model capabilities
+- [ ] Benchmark open-weight models on actual target hardware
+- [ ] Fine-tune narrow tasks only with permitted, high-quality, reviewed data
+- [ ] Consider self-hosting when usage and unit economics justify it
+- [ ] Explore original foundation-model research only with a separate data, compute, safety and staffing budget
 
-- [ ] Benchmark open-weight models on target hardware and Nepali evaluations
-- [ ] Self-host an open-weight model only when demand and economics justify GPU hosting
-- [ ] Fine-tune for a narrow task only with licensed, reviewed, high-quality data
-- [ ] Explore original pretraining research only with an explicit compute, data, safety, and staffing budget
+No general-purpose foundation-model pretraining is part of the current milestone.

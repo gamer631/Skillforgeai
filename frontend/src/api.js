@@ -12,7 +12,9 @@ async function ensureCsrf() {
 export async function api(path, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   const headers = { ...(options.headers || {}) };
-  if (options.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+  if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) headers['X-CSRFToken'] = await ensureCsrf();
 
   const response = await fetch('/api' + path, {
@@ -27,13 +29,17 @@ export async function api(path, options = {}) {
   return payload;
 }
 
-export async function streamMessage(conversationId, content, onDelta) {
+export async function streamMessage(conversationId, content, options, onDelta, onSources) {
   const token = await ensureCsrf();
   const response = await fetch('/api/conversations/' + conversationId + '/messages', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({
+      content,
+      mode: options?.mode || 'teach',
+      project_id: options?.projectId ? Number(options.projectId) : null,
+    }),
   });
 
   if (!response.ok) {
@@ -55,7 +61,8 @@ export async function streamMessage(conversationId, content, onDelta) {
       const line = eventText.split('\n').find(value => value.startsWith('data:'));
       if (!line) continue;
       const event = JSON.parse(line.slice(5).trim());
-      if (event.type === 'delta') onDelta(event.content);
+      if (event.type === 'delta') onDelta?.(event.content);
+      if (event.type === 'sources') onSources?.(event.sources || []);
       if (event.type === 'error') throw new Error(event.error);
     }
   }

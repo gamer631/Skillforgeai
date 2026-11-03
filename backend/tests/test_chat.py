@@ -15,14 +15,14 @@ def test_create_and_stream_message(authenticated_client, provider):
     )
     assert response.status_code == 200
     body = response.get_data(as_text=True)
-    assert '"content": "Hello "' in body
+    assert '"content": "I will help you work through this."' in body
     assert '"type": "done"' in body
     assert provider.last_messages[-1]["content"] == "Explain Python variables in simple terms."
 
     history = authenticated_client.get(f"/api/conversations/{conversation_id}")
     assert history.status_code == 200
     assert [item["role"] for item in history.json["messages"]] == ["user", "assistant"]
-    assert history.json["messages"][1]["content"] == "Hello from SkillForge AI."
+    assert history.json["messages"][1]["content"] == "I will help you work through this. Here is the next step."
 
 
 def test_user_cannot_access_another_users_conversation(app, client):

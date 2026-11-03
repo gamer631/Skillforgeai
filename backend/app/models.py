@@ -23,6 +23,10 @@ class User(db.Model):
     conversations = db.relationship(
         "Conversation", back_populates="user", cascade="all, delete-orphan"
     )
+    projects = db.relationship("Project", back_populates="user", cascade="all, delete-orphan")
+    learning_profile = db.relationship(
+        "LearningProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -58,16 +62,6 @@ class Conversation(db.Model):
         "Document", back_populates="conversation", cascade="all, delete-orphan",
         order_by="Document.created_at",
     )
-
-    def to_list_dict(self):
-        last_message = self.messages[-1] if self.messages else None
-        return {
-            "id": self.id,
-            "title": self.title,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
-            "last_message_preview": (last_message.content[:100] if last_message else ""),
-        }
 
 
 class Message(db.Model):
@@ -130,6 +124,8 @@ class MessageSource(db.Model):
 
 
 class Document(db.Model):
+    """Legacy document metadata table retained for forward-compatible migrations."""
+
     __tablename__ = "documents"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -149,15 +145,6 @@ class Document(db.Model):
         order_by="DocumentPage.page_number",
     )
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "filename": self.filename,
-            "page_count": self.page_count,
-            "character_count": self.character_count,
-            "created_at": self.created_at.isoformat(),
-        }
-
 
 class DocumentPage(db.Model):
     __tablename__ = "document_pages"
@@ -174,6 +161,141 @@ class DocumentPage(db.Model):
     __table_args__ = (
         db.UniqueConstraint("document_id", "page_number", name="uq_document_page_number"),
     )
+
+
+class Project(db.Model):
+    __tablename__ = "projects"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.Text, nullable=False, default="")
+    goals = db.Column(db.Text, nullable=False, default="")
+    tech_stack = db.Column(db.Text, nullable=False, default="")
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, index=True)
+
+    user = db.relationship("User", back_populates="projects")
+    files = db.relationship(
+        "ProjectFile", back_populates="project", cascade="all, delete-orphan",
+        order_by="ProjectFile.path",
+    )
+
+    def to_dict(self, include_files=False):
+        result = {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "goals": self.goals,
+            "tech_stack": [part.strip() for part in self.tech_stack.split(",") if part.strip()],
+            "file_count": len(self.files),
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }
+        if include_files:
+            result["files"] = [item.to_dict() for item in self.files]
+        return result
+
+
+class ProjectFile(db.Model):
+    __tablename__ = "project_files"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    path = db.Column(db.String(240), nullable=False)
+    language = db.Column(db.String(32), nullable=False, default="text")
+    content = db.Column(db.Text, nullable=False)
+    sha256 = db.Column(db.String(64), nullable=False)
+    character_count = db.Column(db.Integer, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    project = db.relationship("Project", back_populates="files")
+
+    __table_args__ = (
+        db.UniqueConstraint("project_id", "path", name="uq_project_file_path"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "path": self.path,
+            "language": self.language,
+            "character_count": self.character_count,
+            "updated_at": self.updated_at.isoformat(),
+        }
+
+
+class ConversationWorkspace(db.Model):
+    __tablename__ = "conversation_workspaces"
+
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(
+        db.Integer, db.ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=False, unique=True, index=True,
+    )
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
+    mode = db.Column(db.String(20), nullable=False, default="teach")
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    __table_args__ = (
+        db.CheckConstraint("mode IN ('teach', 'build', 'review')", name="ck_workspace_mode"),
+    )
+
+
+class KnowledgeArticle(db.Model):
+    __tablename__ = "knowledge_articles"
+
+    id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(140), unique=True, nullable=False, index=True)
+    title = db.Column(db.String(180), nullable=False)
+    category = db.Column(db.String(80), nullable=False, index=True)
+    summary = db.Column(db.String(500), nullable=False, default="")
+    tags = db.Column(db.String(500), nullable=False, default="")
+    language = db.Column(db.String(12), nullable=False, default="en")
+    content = db.Column(db.Text, nullable=False)
+    source_url = db.Column(db.String(2048))
+    is_published = db.Column(db.Boolean, nullable=False, default=True)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "title": self.title,
+            "category": self.category,
+            "summary": self.summary,
+            "tags": [part.strip() for part in self.tags.split(",") if part.strip()],
+            "language": self.language,
+            "source_url": self.source_url,
+            "updated_at": self.updated_at.isoformat(),
+        }
+
+
+class LearningProfile(db.Model):
+    __tablename__ = "learning_profiles"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False, unique=True, index=True,
+    )
+    experience_level = db.Column(db.String(20), nullable=False, default="beginner")
+    preferred_language = db.Column(db.String(12), nullable=False, default="auto")
+    learning_goals = db.Column(db.Text, nullable=False, default="")
+    teaching_style = db.Column(db.String(30), nullable=False, default="step-by-step")
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    user = db.relationship("User", back_populates="learning_profile")
+
+    def to_dict(self):
+        return {
+            "experience_level": self.experience_level,
+            "preferred_language": self.preferred_language,
+            "learning_goals": self.learning_goals,
+            "teaching_style": self.teaching_style,
+            "updated_at": self.updated_at.isoformat(),
+        }
 
 
 class UsageEvent(db.Model):
