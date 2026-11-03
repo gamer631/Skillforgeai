@@ -147,7 +147,7 @@ def send_message(conversation_id: int):
                 model=provider.model,
                 output_characters=len(full_answer),
             )
-            conversation.updated_at = datetime.now(timezone.utc)
+            # Do not use the request-scoped ORM object inside the response generator.
             db.session.add(assistant_message)
             db.session.add(UsageEvent(
                 user_id=owner_id,
