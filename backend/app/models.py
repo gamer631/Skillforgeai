@@ -51,10 +51,12 @@ class Conversation(db.Model):
 
     user = db.relationship("User", back_populates="conversations")
     messages = db.relationship(
-        "Message",
-        back_populates="conversation",
-        cascade="all, delete-orphan",
+        "Message", back_populates="conversation", cascade="all, delete-orphan",
         order_by="Message.created_at",
+    )
+    documents = db.relationship(
+        "Document", back_populates="conversation", cascade="all, delete-orphan",
+        order_by="Document.created_at",
     )
 
     def to_list_dict(self):
@@ -83,6 +85,10 @@ class Message(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
 
     conversation = db.relationship("Conversation", back_populates="messages")
+    sources = db.relationship(
+        "MessageSource", back_populates="message", cascade="all, delete-orphan",
+        order_by="MessageSource.id",
+    )
 
     def to_dict(self):
         return {
@@ -90,8 +96,84 @@ class Message(db.Model):
             "role": self.role,
             "content": self.content,
             "model": self.model,
+            "sources": [source.to_dict() for source in self.sources],
             "created_at": self.created_at.isoformat(),
         }
+
+
+class MessageSource(db.Model):
+    __tablename__ = "message_sources"
+
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(
+        db.Integer, db.ForeignKey("messages.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    document_id = db.Column(
+        db.Integer, db.ForeignKey("documents.id", ondelete="SET NULL"), nullable=True
+    )
+    ref_id = db.Column(db.String(12), nullable=False)
+    kind = db.Column(db.String(20), nullable=False)
+    label = db.Column(db.String(300), nullable=False)
+    url = db.Column(db.String(2048))
+    page_number = db.Column(db.Integer)
+
+    message = db.relationship("Message", back_populates="sources")
+
+    def to_dict(self):
+        return {
+            "id": self.ref_id,
+            "kind": self.kind,
+            "label": self.label,
+            "url": self.url,
+            "page": self.page_number,
+        }
+
+
+class Document(db.Model):
+    __tablename__ = "documents"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    conversation_id = db.Column(
+        db.Integer, db.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    filename = db.Column(db.String(180), nullable=False)
+    sha256 = db.Column(db.String(64), nullable=False)
+    page_count = db.Column(db.Integer, nullable=False)
+    character_count = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+
+    conversation = db.relationship("Conversation", back_populates="documents")
+    pages = db.relationship(
+        "DocumentPage", back_populates="document", cascade="all, delete-orphan",
+        order_by="DocumentPage.page_number",
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "filename": self.filename,
+            "page_count": self.page_count,
+            "character_count": self.character_count,
+            "created_at": self.created_at.isoformat(),
+        }
+
+
+class DocumentPage(db.Model):
+    __tablename__ = "document_pages"
+
+    id = db.Column(db.Integer, primary_key=True)
+    document_id = db.Column(
+        db.Integer, db.ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    page_number = db.Column(db.Integer, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+
+    document = db.relationship("Document", back_populates="pages")
+
+    __table_args__ = (
+        db.UniqueConstraint("document_id", "page_number", name="uq_document_page_number"),
+    )
 
 
 class UsageEvent(db.Model):
